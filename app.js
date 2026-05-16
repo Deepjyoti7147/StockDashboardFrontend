@@ -730,7 +730,15 @@ async function selectExplorerStock(symbol) {
   let prices = null;
   const apiData = await api(CONFIG.API_BASE + '/prices/' + symbol + '?days=365');
   if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-    prices = apiData.map(p => ({ date: (p.timestamp || p.date || '').split('T')[0], close: p.close, high: p.high, low: p.low, volume: p.volume }));
+    prices = apiData
+      .map(p => ({
+        date: (p.timestamp || p.date || '').split('T')[0],
+        close: p.close ?? p.adj_close ?? (p.high && p.low ? (p.high + p.low) / 2 : null),
+        high: p.high,
+        low: p.low,
+        volume: parseInt(p.volume) || 0
+      }))
+      .filter(p => p.close !== null && p.close !== undefined);
   } else if (apiData && apiData.prices) {
     prices = apiData.prices;
   }

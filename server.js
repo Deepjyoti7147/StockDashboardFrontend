@@ -66,7 +66,9 @@ app.get('/api/prices/:symbol', async (req, res) => {
   const interval = req.query.interval || '1d';
 
   const rows = await safeQuery(stockDb, `
-    SELECT symbol, company_name, timestamp, open, high, low, close, adj_close, volume
+    SELECT symbol, company_name, timestamp, open, high, low,
+           COALESCE(close, adj_close, (high + low) / 2.0) AS close,
+           adj_close, volume
     FROM stock_prices
     WHERE symbol = $1 AND interval = $2
       AND timestamp >= NOW() - INTERVAL '${days} days'
@@ -81,7 +83,9 @@ app.get('/api/prices/:symbol', async (req, res) => {
 app.get('/api/prices-latest', async (req, res) => {
   const rows = await safeQuery(stockDb, `
     SELECT DISTINCT ON (symbol)
-      symbol, company_name, close, timestamp, volume
+      symbol, company_name,
+      COALESCE(close, adj_close, (high + low) / 2.0) AS close,
+      timestamp, volume
     FROM stock_prices
     WHERE interval = '1d'
     ORDER BY symbol, timestamp DESC
