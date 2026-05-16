@@ -20,8 +20,8 @@ jobs:
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
-          STOCK_HOST: ${{ secrets.STOCK_HOST }}
-          SORT_HOST: ${{ secrets.SORT_HOST }}
+          STOCK_HOST: ${{ secrets.STOCK_API_HOST }}
+          SORT_HOST: ${{ secrets.SORT_API_HOST }}
           NEWS_COLLECTOR_HOST: ${{ secrets.NEWS_COLLECTOR_HOST }}
           NEWS_ANALYSIS_HOST: ${{ secrets.NEWS_ANALYSIS_HOST }}
         run: |
