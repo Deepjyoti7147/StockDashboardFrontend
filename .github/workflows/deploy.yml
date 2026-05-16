@@ -61,5 +61,5 @@ jobs:
             cd ~/stock-dashboard
             docker compose down || true
             docker compose up -d --build
-            echo "✅ Dashboard deployed successfully on port 7417"
+            echo "✅ Dashboard deployed successfully on port 3000"
           DEPLOY_EOF
