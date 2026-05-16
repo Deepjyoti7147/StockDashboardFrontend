@@ -37,13 +37,13 @@ jobs:
             Dockerfile nginx.conf.template docker-compose.yml \
             ${SERVER_USER}@${SERVER_IP}:~/stock-dashboard/
 
-          # Write .env with backend service IPs
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "cat > ~/stock-dashboard/.env" << EOF
-          STOCK_HOST=${STOCK_HOST}
-          SORT_HOST=${SORT_HOST}
-          NEWS_COLLECTOR_HOST=${NEWS_COLLECTOR_HOST}
-          NEWS_ANALYSIS_HOST=${NEWS_ANALYSIS_HOST}
-          EOF
+          # Write .env with backend service IPs (no leading spaces!)
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} bash -c "cat > ~/stock-dashboard/.env << 'ENVEOF'
+STOCK_HOST=${STOCK_HOST}
+SORT_HOST=${SORT_HOST}
+NEWS_COLLECTOR_HOST=${NEWS_COLLECTOR_HOST}
+NEWS_ANALYSIS_HOST=${NEWS_ANALYSIS_HOST}
+ENVEOF"
 
           # Rebuild and restart container
           ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} << 'DEPLOY_EOF'

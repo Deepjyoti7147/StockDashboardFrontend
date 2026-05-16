@@ -12,6 +12,8 @@ services:
       - SORT_HOST=${SORT_HOST:-127.0.0.1}
       - NEWS_COLLECTOR_HOST=${NEWS_COLLECTOR_HOST:-127.0.0.1}
       - NEWS_ANALYSIS_HOST=${NEWS_ANALYSIS_HOST:-127.0.0.1}
+      # Only substitute our custom vars, not nginx's $host/$uri/$remote_addr
+      - NGINX_ENVSUBST_FILTER=^(STOCK_HOST|SORT_HOST|NEWS_COLLECTOR_HOST|NEWS_ANALYSIS_HOST)$
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 64m
