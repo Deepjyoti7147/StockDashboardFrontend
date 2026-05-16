@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  stock-dashboard:
+    build: .
+    container_name: stock-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    mem_limit: 64m

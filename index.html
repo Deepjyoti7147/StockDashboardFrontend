@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI-powered Indian Stock Market Dashboard — real-time scores, news analysis, sentiment tracking, and watchlist management.">
+  <title>StockPulse — AI Stock Dashboard</title>
+  <link rel="stylesheet" href="index.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="logo-icon">SP</div>
+      <div><h1>StockPulse</h1><span>AI Dashboard</span></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" data-page="stocks" id="nav-stocks">
+        <span class="icon">📈</span> Stock Scores
+      </div>
+      <div class="nav-item" data-page="explorer" id="nav-explorer">
+        <span class="icon">🔬</span> Stock Explorer
+      </div>
+      <div class="nav-item" data-page="news" id="nav-news">
+        <span class="icon">📰</span> News Feed
+      </div>
+      <div class="nav-section-label">Tools</div>
+      <div class="nav-item" data-page="watchlist" id="nav-watchlist">
+        <span class="icon">⭐</span> Watchlist
+      </div>
+      <div class="nav-item" data-page="ai-verdict" id="nav-ai-verdict">
+        <span class="icon">🤖</span> AI Verdict
+      </div>
+      <div class="nav-section-label">System</div>
+      <div class="nav-item" data-page="services" id="nav-services">
+        <span class="icon">⚙️</span> Services Status
+      </div>
+    </nav>
+    <div class="sidebar-footer">StockPulse v1.0 · Built with ❤️</div>
+  </aside>
+
+  <!-- ── Main Content ─────────────────────────────────────── -->
+  <main class="main-content">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div style="display:flex;align-items:center;gap:16px;">
+        <button class="btn-icon mobile-toggle" id="menu-toggle" aria-label="Toggle menu">☰</button>
+        <h2 id="page-title">Dashboard</h2>
+      </div>
+      <div class="top-bar-actions">
+        <div class="search-box" id="global-search">
+          <span>🔍</span>
+          <input type="text" id="search-input" placeholder="Search stocks, news…" autocomplete="off">
+        </div>
+        <button class="btn-icon" id="btn-refresh" title="Refresh data">🔄</button>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--text-muted);">
+          <span class="status-dot" id="connection-dot"></span>
+          <span id="connection-label">Checking…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ DASHBOARD PAGE ═══════════════════════ -->
+    <div class="page active" id="page-dashboard">
+      <!-- KPI Row -->
+      <div class="kpi-row" id="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-icon cyan">📈</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Total Stocks Tracked</div>
+            <div class="kpi-value" id="kpi-total-stocks">—</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">🏆</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Top Scorer</div>
+            <div class="kpi-value" id="kpi-top-scorer">—</div>
+            <div class="kpi-delta up" id="kpi-top-score"></div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon purple">📰</div>
+          <div class="kpi-info">
+            <div class="kpi-label">News Articles</div>
+            <div class="kpi-value" id="kpi-news-count">—</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon amber">💡</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Sentiment</div>
+            <div class="kpi-value" id="kpi-sentiment">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Grid -->
+      <div class="grid-2">
+        <!-- Top Stocks -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🏅 Top 10 Stocks by Score</h3>
+            <button class="btn btn-sm btn-primary" onclick="navigateTo('stocks')">View All →</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Symbol</th><th>Final Score</th><th>Short-Term</th><th>Long-Term</th></tr></thead>
+                <tbody id="top-stocks-body"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="top-stocks-empty" style="display:none;">
+              <div class="empty-icon">📊</div>
+              <p>No scored stocks yet. The SortStockingAgent runs at 9 PM IST on weekdays.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Recent News -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📰 Latest News</h3>
+            <button class="btn btn-sm btn-primary" onclick="navigateTo('news')">View All →</button>
+          </div>
+          <div class="card-body">
+            <div class="news-feed" id="dashboard-news-feed"></div>
+            <div class="empty-state" id="dashboard-news-empty" style="display:none;">
+              <div class="empty-icon">📰</div>
+              <p>No news collected yet. The NewsCollector polls every 15 minutes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sentiment Overview -->
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header"><h3>📊 Sentiment Overview</h3></div>
+        <div class="card-body">
+          <div class="sentiment-row" id="sentiment-row">
+            <div class="sentiment-chip">
+              <span style="color:var(--green)">●</span> Positive
+              <span class="count" id="sent-positive">0</span>
+            </div>
+            <div class="sentiment-chip">
+              <span style="color:var(--red)">●</span> Negative
+              <span class="count" id="sent-negative">0</span>
+            </div>
+            <div class="sentiment-chip">
+              <span style="color:var(--amber)">●</span> Neutral
+              <span class="count" id="sent-neutral">0</span>
+            </div>
+          </div>
+          <div id="sector-breakdown"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ STOCKS PAGE ══════════════════════════ -->
+    <div class="page" id="page-stocks">
+      <div class="card">
+        <div class="card-header">
+          <h3>📈 All Stock Scores — GARP + Momentum + Sentiment</h3>
+          <div style="display:flex;gap:8px;">
+            <select id="sort-select" style="padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-primary);font-family:inherit;font-size:.8rem;">
+              <option value="final_score">Sort by Final Score</option>
+              <option value="short_term_score">Sort by Short-Term</option>
+              <option value="long_term_score">Sort by Long-Term</option>
+              <option value="symbol">Sort by Symbol</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Symbol</th><th>Final Score</th><th>Short-Term</th><th>Long-Term</th>
+                <th>P/E</th><th>ROE</th><th>D/E</th><th>Updated</th>
+              </tr></thead>
+              <tbody id="all-stocks-body"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="all-stocks-empty" style="display:none;">
+            <div class="empty-icon">📊</div>
+            <p>No scored stocks available. Trigger the SortStockingAgent to generate scores.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ STOCK EXPLORER PAGE ════════════════════ -->
+    <div class="page" id="page-explorer">
+      <!-- Stock Selector -->
+      <div class="explorer-selector">
+        <div class="search-box" style="flex:1;max-width:400px;">
+          <span>🔍</span>
+          <input type="text" id="explorer-search" placeholder="Search and select a stock…" autocomplete="off">
+        </div>
+        <div class="explorer-chips" id="explorer-recent-chips"></div>
+      </div>
+      <div id="explorer-dropdown" class="explorer-dropdown"></div>
+
+      <!-- Explorer Content (hidden until a stock is selected) -->
+      <div id="explorer-content" style="display:none;">
+        <!-- Header -->
+        <div class="explorer-header" id="explorer-header">
+          <div>
+            <h2 id="explorer-name" style="font-size:1.5rem;font-weight:800;">—</h2>
+            <span id="explorer-symbol-badge" class="symbol-badge" style="font-size:.85rem;">—</span>
+            <span id="explorer-sector" class="badge sector" style="margin-left:8px;">—</span>
+          </div>
+          <div style="text-align:right;">
+            <div id="explorer-price" style="font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;">—</div>
+            <div id="explorer-change" class="kpi-delta">—</div>
+          </div>
+        </div>
+
+        <!-- Price Chart -->
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h3>📈 Price History</h3>
+            <div class="filter-bar" style="margin:0;">
+              <button class="filter-btn active" data-range="7">1W</button>
+              <button class="filter-btn" data-range="30">1M</button>
+              <button class="filter-btn" data-range="90">3M</button>
+              <button class="filter-btn" data-range="180">6M</button>
+              <button class="filter-btn" data-range="365">1Y</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:16px;">
+            <canvas id="price-chart" width="900" height="320" style="width:100%;height:320px;"></canvas>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <!-- Technical Indicators -->
+          <div class="card">
+            <div class="card-header"><h3>📊 Technical Indicators</h3></div>
+            <div class="card-body">
+              <div class="metric-grid" id="indicator-grid">
+                <div class="metric-item"><div class="label">RSI (14)</div><div class="value" id="ind-rsi">—</div></div>
+                <div class="metric-item"><div class="label">Beta</div><div class="value" id="ind-beta">—</div></div>
+                <div class="metric-item"><div class="label">SMA 20</div><div class="value" id="ind-sma20">—</div></div>
+                <div class="metric-item"><div class="label">SMA 50</div><div class="value" id="ind-sma50">—</div></div>
+                <div class="metric-item"><div class="label">EMA 12</div><div class="value" id="ind-ema12">—</div></div>
+                <div class="metric-item"><div class="label">EMA 26</div><div class="value" id="ind-ema26">—</div></div>
+                <div class="metric-item"><div class="label">MACD</div><div class="value" id="ind-macd">—</div></div>
+                <div class="metric-item"><div class="label">Volatility (σ)</div><div class="value" id="ind-vol">—</div></div>
+                <div class="metric-item"><div class="label">52W High</div><div class="value" id="ind-52h">—</div></div>
+                <div class="metric-item"><div class="label">52W Low</div><div class="value" id="ind-52l">—</div></div>
+                <div class="metric-item"><div class="label">Avg Volume</div><div class="value" id="ind-avgvol">—</div></div>
+                <div class="metric-item"><div class="label">ADR %</div><div class="value" id="ind-adr">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fundamentals -->
+          <div class="card">
+            <div class="card-header"><h3>🏛️ Fundamentals</h3></div>
+            <div class="card-body">
+              <div class="metric-grid" id="fundamental-grid">
+                <div class="metric-item"><div class="label">P/E Ratio</div><div class="value" id="fund-pe">—</div></div>
+                <div class="metric-item"><div class="label">ROE</div><div class="value" id="fund-roe">—</div></div>
+                <div class="metric-item"><div class="label">Debt/Equity</div><div class="value" id="fund-de">—</div></div>
+                <div class="metric-item"><div class="label">Market Cap</div><div class="value" id="fund-mcap">—</div></div>
+                <div class="metric-item"><div class="label">GARP Score</div><div class="value" id="fund-garp">—</div></div>
+                <div class="metric-item"><div class="label">Momentum</div><div class="value" id="fund-momentum">—</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Verdict for this stock -->
+        <div class="ai-verdict-card" style="margin-bottom:20px;">
+          <div class="ai-badge">🤖 AI Verdict · Coming Soon</div>
+          <h3 id="explorer-ai-title">AI Analysis</h3>
+          <p class="ai-placeholder">AI-powered buy/hold/sell recommendation for this stock will appear here once the NVIDIA NIM integration is live. It will combine price trends, technicals, fundamentals, and news sentiment.</p>
+        </div>
+
+        <!-- Related News -->
+        <div class="card">
+          <div class="card-header"><h3>📰 Related News</h3></div>
+          <div class="card-body">
+            <div class="news-feed" id="explorer-news-feed" style="max-height:400px;"></div>
+            <div class="empty-state" id="explorer-news-empty" style="display:none;">
+              <div class="empty-icon">📰</div><p>No news found for this stock or sector.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state before selection -->
+      <div class="empty-state" id="explorer-empty">
+        <div class="empty-icon">🔬</div>
+        <p>Select a stock above to view its price chart, technical indicators, fundamentals, and related news.</p>
+      </div>
+    </div>
+
+    <!-- ══════════════ NEWS PAGE ════════════════════════════ -->
+    <div class="page" id="page-news">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="rss-news">RSS News</button>
+        <button class="tab-btn" data-tab="yf-news">Ticker News (YF)</button>
+        <button class="tab-btn" data-tab="analyzed">Analyzed</button>
+      </div>
+      <div class="filter-bar" id="news-filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="positive">🟢 Positive</button>
+        <button class="filter-btn" data-filter="negative">🔴 Negative</button>
+        <button class="filter-btn" data-filter="neutral">🟡 Neutral</button>
+      </div>
+      <div class="tab-content active" id="tab-rss-news">
+        <div class="news-grid" id="rss-news-grid"></div>
+        <div class="empty-state" id="rss-news-empty" style="display:none;">
+          <div class="empty-icon">📰</div><p>No RSS news collected yet.</p>
+        </div>
+      </div>
+      <div class="tab-content" id="tab-yf-news">
+        <div class="news-grid" id="yf-news-grid"></div>
+        <div class="empty-state" id="yf-news-empty" style="display:none;">
+          <div class="empty-icon">📰</div><p>No ticker news. Add symbols to your watchlist first.</p>
+        </div>
+      </div>
+      <div class="tab-content" id="tab-analyzed">
+        <div class="news-grid" id="analyzed-news-grid"></div>
+        <div class="empty-state" id="analyzed-empty" style="display:none;">
+          <div class="empty-icon">🤖</div><p>No analyzed news yet. The NewsAnalysisAgent processes articles every 5 minutes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ WATCHLIST PAGE ═══════════════════════ -->
+    <div class="page" id="page-watchlist">
+      <div class="card" style="margin-bottom:24px;">
+        <div class="card-header"><h3>⭐ Manage Watchlist</h3></div>
+        <div class="card-body">
+          <div class="watchlist-input-row">
+            <input type="text" id="watchlist-input" placeholder="Enter ticker symbol (e.g. TCS, RELIANCE, INFY)…">
+            <button class="btn btn-primary" id="btn-add-watchlist">➕ Add</button>
+          </div>
+          <div class="watchlist-chips" id="watchlist-chips"></div>
+          <div class="empty-state" id="watchlist-empty" style="display:none;">
+            <div class="empty-icon">⭐</div><p>Your watchlist is empty. Add symbols above to track their news.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📰 Watchlist News</h3></div>
+        <div class="card-body">
+          <div class="news-grid" id="watchlist-news-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ AI VERDICT PAGE ═════════════════════ -->
+    <div class="page" id="page-ai-verdict">
+      <div class="ai-verdict-card">
+        <div class="ai-badge">🤖 NVIDIA NIM · Coming Soon</div>
+        <h3>AI Verdict Engine</h3>
+        <p class="ai-placeholder">
+          This section will integrate with the NVIDIA NIM API (build.nvidia) to provide comprehensive AI-powered verdicts for each stock.
+          The engine will aggregate all available data — price history, fundamental metrics, news sentiment, and sector trends — and produce
+          a detailed buy/hold/sell recommendation with confidence scores and reasoning.
+        </p>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h3>🧠 Planned Features</h3></div>
+          <div class="card-body">
+            <ul style="list-style:none;display:flex;flex-direction:column;gap:12px;">
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--accent-hover);">✦</span>
+                <div><strong>Multi-Signal Fusion</strong><br><span style="color:var(--text-muted);font-size:.82rem;">Combines GARP scores, momentum, sentiment, and fundamentals into a unified AI signal.</span></div>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--accent-hover);">✦</span>
+                <div><strong>Natural Language Reasoning</strong><br><span style="color:var(--text-muted);font-size:.82rem;">AI explains its verdict in plain language with supporting evidence from news and data.</span></div>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--accent-hover);">✦</span>
+                <div><strong>Confidence Scores</strong><br><span style="color:var(--text-muted);font-size:.82rem;">Each recommendation includes a confidence percentage and risk assessment.</span></div>
+              </li>
+              <li style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--accent-hover);">✦</span>
+                <div><strong>Sector-Level Insights</strong><br><span style="color:var(--text-muted);font-size:.82rem;">Cross-stock analysis to identify sector-wide trends and opportunities.</span></div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>📋 Daily Market Report</h3></div>
+          <div class="card-body">
+            <div id="daily-report-content">
+              <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <p>Daily market reports are generated at 8 PM IST by the NewsAnalysisAgent. The latest report will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ SERVICES PAGE ═══════════════════════ -->
+    <div class="page" id="page-services">
+      <div class="service-grid" id="service-grid">
+        <div class="service-card" id="svc-stock-data">
+          <div class="service-icon">📦</div>
+          <div class="service-name">StockDataCollector</div>
+          <div class="service-status">Port 8001 · <span class="status-text">Checking…</span></div>
+          <div style="margin-top:8px;"><span class="status-dot" id="svc-dot-stock"></span></div>
+        </div>
+        <div class="service-card" id="svc-sort">
+          <div class="service-icon">🔢</div>
+          <div class="service-name">SortStockingAgent</div>
+          <div class="service-status">Port 8002 · <span class="status-text">Checking…</span></div>
+          <div style="margin-top:8px;"><span class="status-dot" id="svc-dot-sort"></span></div>
+        </div>
+        <div class="service-card" id="svc-news-collector">
+          <div class="service-icon">📰</div>
+          <div class="service-name">NewsCollector</div>
+          <div class="service-status">Port 5000 · <span class="status-text">Checking…</span></div>
+          <div style="margin-top:8px;"><span class="status-dot" id="svc-dot-news"></span></div>
+        </div>
+        <div class="service-card" id="svc-news-analysis">
+          <div class="service-icon">🧠</div>
+          <div class="service-name">NewsAnalysisAgent</div>
+          <div class="service-status">Port 8003 · <span class="status-text">Checking…</span></div>
+          <div style="margin-top:8px;"><span class="status-dot" id="svc-dot-analysis"></span></div>
+        </div>
+        <div class="service-card" id="svc-full-content">
+          <div class="service-icon">📄</div>
+          <div class="service-name">FullContentAgent</div>
+          <div class="service-status">Background daemon · <span class="status-text">N/A</span></div>
+          <div style="margin-top:8px;"><span class="status-dot" id="svc-dot-full"></span></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header"><h3>🛠️ Manual Triggers</h3></div>
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-trigger-collect">📦 Trigger Data Collection</button>
+          <button class="btn btn-primary" id="btn-trigger-sort">🔢 Trigger Score Calculation</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── Stock Detail Slide Panel ────────────────────────────── -->
+<div class="detail-overlay" id="detail-overlay"></div>
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-panel-header">
+    <h3 id="detail-symbol">—</h3>
+    <button class="detail-close" id="detail-close">✕</button>
+  </div>
+  <div class="detail-panel-body" id="detail-body"></div>
+</div>
+
+<!-- ── Toast Container ────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

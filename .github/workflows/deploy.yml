@@ -1,0 +1,65 @@
+name: Deploy Stock Dashboard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+      - name: Deploy to server via Tailscale SSH
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          # Per-service IPs (optional — falls back to SERVER_IP)
+          STOCK_API_HOST: ${{ secrets.STOCK_API_HOST }}
+          SORT_API_HOST: ${{ secrets.SORT_API_HOST }}
+          NEWS_COLLECTOR_HOST: ${{ secrets.NEWS_COLLECTOR_HOST }}
+          NEWS_ANALYSIS_HOST: ${{ secrets.NEWS_ANALYSIS_HOST }}
+        run: |
+          # Wait for Tailscale to connect
+          sleep 5
+
+          # Resolve per-service hosts (fall back to SERVER_IP)
+          STOCK_H="${STOCK_API_HOST:-$SERVER_IP}"
+          SORT_H="${SORT_API_HOST:-$SERVER_IP}"
+          NEWS_C_H="${NEWS_COLLECTOR_HOST:-$SERVER_IP}"
+          NEWS_A_H="${NEWS_ANALYSIS_HOST:-$SERVER_IP}"
+
+          # Create project dir on remote
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "mkdir -p /opt/stock-dashboard"
+
+          # Copy all files
+          scp -o StrictHostKeyChecking=no \
+            index.html index.css app.js config.js \
+            Dockerfile nginx.conf docker-compose.yml \
+            ${SERVER_USER}@${SERVER_IP}:/opt/stock-dashboard/
+
+          # Inject production config with service IPs from secrets
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "cat > /opt/stock-dashboard/config.js" << EOF
+          const CONFIG = {
+            STOCK_API:          'http://${STOCK_H}:8001',
+            SORT_API:           'http://${SORT_H}:8002',
+            NEWS_COLLECTOR_API: 'http://${NEWS_C_H}:5000',
+            NEWS_ANALYSIS_API:  'http://${NEWS_A_H}:8003',
+            REFRESH_INTERVAL: 60000,
+            NEWS_REFRESH:     120000,
+          };
+          EOF
+
+          # Rebuild and restart container
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} << 'DEPLOY_EOF'
+            cd /opt/stock-dashboard
+            docker compose down || true
+            docker compose up -d --build
+            echo "✅ Dashboard deployed successfully on port 3000"
+          DEPLOY_EOF
