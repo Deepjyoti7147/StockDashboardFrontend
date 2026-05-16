@@ -20,10 +20,12 @@ jobs:
         env:
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
-          STOCK_HOST: ${{ secrets.STOCK_API_HOST }}
-          SORT_HOST: ${{ secrets.SORT_API_HOST }}
-          NEWS_COLLECTOR_HOST: ${{ secrets.NEWS_COLLECTOR_HOST }}
-          NEWS_ANALYSIS_HOST: ${{ secrets.NEWS_ANALYSIS_HOST }}
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          NEWS_POSTGRES_DB: ${{ secrets.NEWS_POSTGRES_DB }}
         run: |
           # Wait for Tailscale to connect
           sleep 5
@@ -34,13 +36,14 @@ jobs:
           # Copy all files
           scp -o StrictHostKeyChecking=no \
             index.html index.css app.js config.js \
-            Dockerfile nginx.conf.template docker-compose.yml \
+            server.js package.json \
+            Dockerfile docker-compose.yml \
             ${SERVER_USER}@${SERVER_IP}:~/stock-dashboard/
 
-          # Write .env with backend service IPs
+          # Write .env with database credentials
           ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} \
-            "printf 'STOCK_HOST=%s\nSORT_HOST=%s\nNEWS_COLLECTOR_HOST=%s\nNEWS_ANALYSIS_HOST=%s\n' \
-            '${STOCK_HOST}' '${SORT_HOST}' '${NEWS_COLLECTOR_HOST}' '${NEWS_ANALYSIS_HOST}' \
+            "printf 'POSTGRES_HOST=%s\nPOSTGRES_PORT=%s\nPOSTGRES_DB=%s\nPOSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nNEWS_POSTGRES_DB=%s\n' \
+            '${POSTGRES_HOST}' '${POSTGRES_PORT:-5432}' '${POSTGRES_DB:-stockdata}' '${POSTGRES_USER:-postgres}' '${POSTGRES_PASSWORD}' '${NEWS_POSTGRES_DB:-newsdb}' \
             > ~/stock-dashboard/.env"
 
           # Rebuild and restart container

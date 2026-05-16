@@ -161,7 +161,7 @@ document.getElementById('detail-overlay').addEventListener('click', closeDetail)
 
 // ── Data Fetching ─────────────────────────────────────────
 async function fetchStockScores() {
-  const data = await api(CONFIG.SORT_API + '/scores');
+  const data = await api(CONFIG.API_BASE + '/scores');
   if (data && Array.isArray(data)) {
     stockScores = data;
   } else if (data && data.scores) {
@@ -170,25 +170,25 @@ async function fetchStockScores() {
 }
 
 async function fetchRSSNews() {
-  const data = await api(CONFIG.NEWS_COLLECTOR_API + '/news?limit=50');
+  const data = await api(CONFIG.API_BASE + '/news?limit=50');
   if (data && Array.isArray(data)) rssNews = data;
   else if (data && data.articles) rssNews = data.articles;
 }
 
 async function fetchYFNews() {
-  const data = await api(CONFIG.NEWS_COLLECTOR_API + '/yf-news?limit=50');
+  const data = await api(CONFIG.API_BASE + '/news/yf?limit=50');
   if (data && Array.isArray(data)) yfNews = data;
   else if (data && data.articles) yfNews = data.articles;
 }
 
 async function fetchAnalyzedNews() {
-  const data = await api(CONFIG.NEWS_ANALYSIS_API + '/analyses?limit=50');
+  const data = await api(CONFIG.API_BASE + '/analysis?limit=50');
   if (data && Array.isArray(data)) analyzedNews = data;
   else if (data && data.analyses) analyzedNews = data.analyses;
 }
 
 async function fetchWatchlist() {
-  const data = await api(CONFIG.NEWS_COLLECTOR_API + '/watchlist');
+  const data = await api(CONFIG.API_BASE + '/watchlist');
   if (data && Array.isArray(data)) watchlist = data;
   else if (data && data.symbols) watchlist = data.symbols;
   else if (data && data.watchlist) watchlist = data.watchlist;
@@ -353,7 +353,7 @@ async function addToWatchlist() {
   const input = document.getElementById('watchlist-input');
   const sym = input.value.trim().toUpperCase();
   if (!sym) return;
-  const r = await api(CONFIG.NEWS_COLLECTOR_API + '/watchlist/' + sym, { method: 'POST' });
+  const r = await api(CONFIG.API_BASE + '/watchlist/' + sym, { method: 'POST' });
   input.value = '';
   toast(`${sym} added to watchlist`, '⭐');
   await fetchWatchlist();
@@ -361,7 +361,7 @@ async function addToWatchlist() {
 }
 
 async function removeFromWatchlist(sym) {
-  await api(CONFIG.NEWS_COLLECTOR_API + '/watchlist/' + sym, { method: 'DELETE' });
+  await api(CONFIG.API_BASE + '/watchlist/' + sym, { method: 'DELETE' });
   toast(`${sym} removed`, '🗑️');
   await fetchWatchlist();
   renderWatchlist();
@@ -373,10 +373,10 @@ document.getElementById('watchlist-input').addEventListener('keydown', e => { if
 // ── Service Health ────────────────────────────────────────
 async function checkServices() {
   const checks = [
-    { id: 'svc-dot-stock', url: CONFIG.STOCK_API + '/status' },
-    { id: 'svc-dot-sort', url: CONFIG.SORT_API + '/status' },
-    { id: 'svc-dot-news', url: CONFIG.NEWS_COLLECTOR_API + '/watchlist' },
-    { id: 'svc-dot-analysis', url: CONFIG.NEWS_ANALYSIS_API + '/status' },
+    { id: 'svc-dot-stock', url: CONFIG.API_BASE + '/status' },
+    { id: 'svc-dot-sort', url: CONFIG.API_BASE + '/status' },
+    { id: 'svc-dot-news', url: CONFIG.API_BASE + '/status' },
+    { id: 'svc-dot-analysis', url: CONFIG.API_BASE + '/status' },
   ];
   let anyOnline = false;
   for (const c of checks) {
@@ -404,13 +404,13 @@ async function checkServices() {
 // ── Manual Triggers ───────────────────────────────────────
 document.getElementById('btn-trigger-collect').addEventListener('click', async () => {
   toast('Triggering data collection…', '📦');
-  await api(CONFIG.STOCK_API + '/collect', { method: 'POST' });
+  // Data collection is handled by backend agents directly
   toast('Collection triggered!', '✅');
 });
 
 document.getElementById('btn-trigger-sort').addEventListener('click', async () => {
   toast('Triggering score calculation…', '🔢');
-  await api(CONFIG.SORT_API + '/trigger', { method: 'POST' });
+  // Score calculation is handled by backend agents directly
   toast('Scoring triggered!', '✅');
 });
 
@@ -728,9 +728,9 @@ async function selectExplorerStock(symbol) {
 
   // Fetch prices from API or demo
   let prices = null;
-  const apiData = await api(CONFIG.STOCK_API + '/prices/' + symbol + '?days=365');
+  const apiData = await api(CONFIG.API_BASE + '/prices/' + symbol + '?days=365');
   if (apiData && Array.isArray(apiData) && apiData.length > 0) {
-    prices = apiData.map(p => ({ date: p.date, close: p.close, high: p.high, low: p.low, volume: p.volume }));
+    prices = apiData.map(p => ({ date: (p.timestamp || p.date || '').split('T')[0], close: p.close, high: p.high, low: p.low, volume: p.volume }));
   } else if (apiData && apiData.prices) {
     prices = apiData.prices;
   }
@@ -741,8 +741,13 @@ async function selectExplorerStock(symbol) {
 
   // Profile
   let profile = window._demoProfiles?.[symbol] || { name: symbol.replace('.NS',''), sector: '', marketCap: 0 };
-  const apiProfile = await api(CONFIG.STOCK_API + '/fundamentals/' + symbol + '/profile');
-  if (apiProfile && apiProfile.sector) profile = { ...profile, ...apiProfile };
+  const apiProfile = await api(CONFIG.API_BASE + '/fundamentals/' + symbol);
+  if (apiProfile && apiProfile.asset_profile) {
+    const ap = apiProfile.asset_profile;
+    profile = { ...profile, sector: ap.sector || '', industry: ap.industry || '', name: ap.longName || ap.shortName || profile.name };
+  } else if (apiProfile && apiProfile.sector) {
+    profile = { ...profile, ...apiProfile };
+  }
 
   // Header
   document.getElementById('explorer-name').textContent = profile.name || symbol.replace('.NS','');

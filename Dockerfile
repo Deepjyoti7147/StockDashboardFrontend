@@ -1,7 +1,15 @@
-FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/
-COPY index.css /usr/share/nginx/html/
-COPY app.js /usr/share/nginx/html/
-COPY config.js /usr/share/nginx/html/
-COPY nginx.conf.template /etc/nginx/templates/default.conf.template
-EXPOSE 80
+FROM node:20-alpine
+WORKDIR /app
+
+# Install dependencies
+COPY package.json ./
+RUN npm install --production
+
+# Copy backend
+COPY server.js ./
+
+# Copy frontend into /public
+COPY index.html index.css app.js config.js ./public/
+
+EXPOSE 3000
+CMD ["node", "server.js"]
