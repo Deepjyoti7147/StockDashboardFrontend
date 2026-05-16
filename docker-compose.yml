@@ -6,6 +6,12 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    environment:
+      # Set these to the IPs/hostnames of your backend services
+      - STOCK_HOST=${STOCK_HOST:-127.0.0.1}
+      - SORT_HOST=${SORT_HOST:-127.0.0.1}
+      - NEWS_COLLECTOR_HOST=${NEWS_COLLECTOR_HOST:-127.0.0.1}
+      - NEWS_ANALYSIS_HOST=${NEWS_ANALYSIS_HOST:-127.0.0.1}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     mem_limit: 64m
