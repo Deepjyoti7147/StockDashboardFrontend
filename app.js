@@ -718,8 +718,10 @@ async function selectExplorerStock(symbol) {
   renderIndicators(prices);
   // Chart
   renderExplorerChart();
+  // Deep Fundamentals
+  renderDeepFundamentals(apiProfile);
   // News
-  renderExplorerNews(symbol, profile.sector);
+  await fetchAndRenderExplorerNews(symbol, profile.sector);
 }
 
 function renderIndicators(prices) {
@@ -760,17 +762,69 @@ function renderExplorerChart() {
   drawPriceChart(sliced);
 }
 
-function renderExplorerNews(symbol, sector) {
+function renderDeepFundamentals(apiProfile) {
+  if (!apiProfile) {
+    document.getElementById('explorer-deep-profile').textContent = 'No data available.';
+    document.getElementById('explorer-deep-bs-annual').textContent = 'No data available.';
+    document.getElementById('explorer-deep-bs-quarter').textContent = 'No data available.';
+    document.getElementById('explorer-deep-cf-annual').textContent = 'No data available.';
+    document.getElementById('explorer-deep-cf-quarter').textContent = 'No data available.';
+    return;
+  }
+  
+  const formatJSON = (data) => data ? JSON.stringify(data, null, 2) : 'No data available.';
+  
+  document.getElementById('explorer-deep-profile').textContent = formatJSON(apiProfile.asset_profile);
+  document.getElementById('explorer-deep-bs-annual').textContent = formatJSON(apiProfile.balance_sheet_annual);
+  document.getElementById('explorer-deep-bs-quarter').textContent = formatJSON(apiProfile.balance_sheet_quarterly);
+  document.getElementById('explorer-deep-cf-annual').textContent = formatJSON(apiProfile.cash_flow_annual);
+  document.getElementById('explorer-deep-cf-quarter').textContent = formatJSON(apiProfile.cash_flow_quarterly);
+}
+
+async function fetchAndRenderExplorerNews(symbol, sector) {
   const feed = document.getElementById('explorer-news-feed');
   const empty = document.getElementById('explorer-news-empty');
-  const cleanSym = symbol.replace('.NS', '').toLowerCase();
-  const all = [...yfNews, ...rssNews, ...analyzedNews].filter(n => {
-    const title = (n.title || '').toLowerCase();
-    const sym = (n.symbol || '').toLowerCase();
-    return sym.includes(cleanSym) || title.includes(cleanSym) ||
-      (sector && title.includes(sector.toLowerCase()));
-  }).slice(0, 10);
+  feed.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Fetching news...</div>';
+  empty.style.display = 'none';
+
+  let all = [];
+  
+  // 1. Fetch YF news for symbol
+  const yfData = await api(CONFIG.API_BASE + '/news/yf?limit=10&symbol=' + symbol);
+  if (yfData && Array.isArray(yfData)) {
+    all = [...all, ...yfData];
+  }
+  
+  // 2. Fetch Sector news
+  if (sector) {
+    const sectorData = await api(CONFIG.API_BASE + '/sectors/' + encodeURIComponent(sector) + '/news');
+    if (sectorData && Array.isArray(sectorData)) {
+      all = [...all, ...sectorData];
+    }
+  }
+
+  // Fallback to locally cached if both failed
+  if (all.length === 0) {
+    const cleanSym = symbol.replace('.NS', '').toLowerCase();
+    all = [...yfNews, ...rssNews, ...analyzedNews].filter(n => {
+      const title = (n.title || '').toLowerCase();
+      const sym = (n.symbol || '').toLowerCase();
+      return sym.includes(cleanSym) || title.includes(cleanSym) ||
+        (sector && title.includes(sector.toLowerCase()));
+    }).slice(0, 10);
+  }
+
+  // Deduplicate by title
+  const seen = new Set();
+  all = all.filter(n => {
+    const t = n.title;
+    if (seen.has(t)) return false;
+    seen.add(t);
+    return true;
+  });
+
   if (all.length === 0) { feed.innerHTML = ''; empty.style.display = 'block'; return; }
+  
   empty.style.display = 'none';
   feed.innerHTML = all.map(n => `<div class="news-item" onclick="window.open('${n.article_url || n.link || '#'}','_blank')">
     <div class="news-meta">
@@ -804,6 +858,17 @@ document.querySelectorAll('#page-explorer [data-range]').forEach(btn => {
     btn.classList.add('active');
     explorerRange = parseInt(btn.dataset.range);
     renderExplorerChart();
+  });
+});
+
+// Deep fundamentals tab buttons
+document.querySelectorAll('#page-explorer [data-fund-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#page-explorer [data-fund-tab]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.fund-tab-content').forEach(c => c.style.display = 'none');
+    const tabContent = document.getElementById('fund-tab-' + btn.dataset.fundTab);
+    if (tabContent) tabContent.style.display = 'block';
   });
 });
 
