@@ -10,9 +10,12 @@ let currentFilter = 'all';
 async function api(url, opts = {}) {
   try {
     const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(8000) });
-    if (!r.ok) throw new Error(r.statusText);
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
     return await r.json();
-  } catch (e) { console.warn(`API ${url}:`, e.message); return null; }
+  } catch (e) {
+    console.error(`[StockPulse API] ${opts.method || 'GET'} ${url} failed:`, e.message);
+    return null;
+  }
 }
 
 function toast(msg, icon = '✅') {
@@ -455,81 +458,7 @@ async function loadAll() {
   checkServices();
 }
 
-// Demo data for when APIs are unavailable
-function loadDemoData() {
-  const symbols = ['RELIANCE.NS','TCS.NS','INFY.NS','HDFCBANK.NS','ICICIBANK.NS','WIPRO.NS','BHARTIARTL.NS','SBIN.NS','AXISBANK.NS','KOTAKBANK.NS','MARUTI.NS','LT.NS','TATAMOTORS.NS','SUNPHARMA.NS','TITAN.NS'];
-  stockScores = symbols.map((sym, i) => ({
-    symbol: sym,
-    final_score: 85 - i * 3.5 + Math.random() * 10,
-    short_term_score: 80 - i * 3 + Math.random() * 15,
-    long_term_score: 90 - i * 4 + Math.random() * 8,
-    pe_ratio: 15 + Math.random() * 30,
-    roe: 0.08 + Math.random() * 0.25,
-    debt_to_equity: Math.random() * 2,
-    scored_at: new Date(Date.now() - Math.random() * 86400000).toISOString(),
-  }));
-
-  const headlines = [
-    'RBI keeps repo rate unchanged at 6.5% in latest monetary policy review',
-    'Reliance Industries Q4 results: Net profit rises 12% YoY to ₹19,299 crore',
-    'IT sector outlook: TCS and Infosys lead recovery in demand pipeline',
-    'HDFC Bank merger integration on track, asset quality improves',
-    'Auto sector rally: Maruti Suzuki reports record domestic sales in April',
-    'SBI reports strongest-ever quarterly profit, NPA ratio falls to 10-year low',
-    'Pharma stocks surge as FDA clears backlog of Indian drug inspections',
-    'Global markets rally on US Fed pause signals; Nifty crosses 23,000',
-  ];
-  rssNews = headlines.map((t, i) => ({
-    title: t,
-    summary: 'Market analysis and latest updates on Indian stock market developments and corporate earnings.',
-    source_name: ['Economic Times','Moneycontrol','LiveMint','NDTV Profit','Business Standard'][i % 5],
-    published_at: new Date(Date.now() - i * 3600000).toISOString(),
-    link: '#',
-  }));
-
-  analyzedNews = headlines.slice(0, 5).map((t, i) => ({
-    title: t,
-    analysis_result: 'Analysis indicates moderate positive sentiment with sector-wide implications for near-term trading.',
-    sentiment: ['Positive','Positive','Neutral','Positive','Negative'][i],
-    impact_level: ['Market','Sector','Sector','Company','Market'][i],
-    impact_entity: ['','Banking','IT','HDFC Bank',''][i],
-    article_source: 'rss',
-    created_at: new Date(Date.now() - i * 7200000).toISOString(),
-  }));
-
-  watchlist = ['TCS', 'RELIANCE', 'INFY', 'HDFCBANK'];
-
-  // Demo price data for explorer
-  window._demoPriceData = {};
-  symbols.forEach(sym => {
-    const prices = [];
-    let p = 1000 + Math.random() * 3000;
-    for (let i = 365; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      p += (Math.random() - 0.48) * p * 0.02;
-      prices.push({ date: d.toISOString().split('T')[0], close: +p.toFixed(2), high: +(p * (1 + Math.random()*0.02)).toFixed(2), low: +(p * (1 - Math.random()*0.02)).toFixed(2), volume: Math.floor(100000 + Math.random() * 5000000) });
-    }
-    window._demoPriceData[sym] = prices;
-  });
-
-  window._demoProfiles = {
-    'RELIANCE.NS': { sector: 'Energy', name: 'Reliance Industries Ltd', marketCap: 1930000 },
-    'TCS.NS': { sector: 'IT', name: 'Tata Consultancy Services', marketCap: 1490000 },
-    'INFY.NS': { sector: 'IT', name: 'Infosys Ltd', marketCap: 680000 },
-    'HDFCBANK.NS': { sector: 'Banking', name: 'HDFC Bank Ltd', marketCap: 1250000 },
-    'ICICIBANK.NS': { sector: 'Banking', name: 'ICICI Bank Ltd', marketCap: 820000 },
-    'WIPRO.NS': { sector: 'IT', name: 'Wipro Ltd', marketCap: 260000 },
-    'BHARTIARTL.NS': { sector: 'Telecom', name: 'Bharti Airtel Ltd', marketCap: 890000 },
-    'SBIN.NS': { sector: 'Banking', name: 'State Bank of India', marketCap: 710000 },
-    'AXISBANK.NS': { sector: 'Banking', name: 'Axis Bank Ltd', marketCap: 370000 },
-    'KOTAKBANK.NS': { sector: 'Banking', name: 'Kotak Mahindra Bank', marketCap: 400000 },
-    'MARUTI.NS': { sector: 'Auto', name: 'Maruti Suzuki India', marketCap: 430000 },
-    'LT.NS': { sector: 'Infrastructure', name: 'Larsen & Toubro', marketCap: 520000 },
-    'TATAMOTORS.NS': { sector: 'Auto', name: 'Tata Motors Ltd', marketCap: 310000 },
-    'SUNPHARMA.NS': { sector: 'Pharma', name: 'Sun Pharmaceutical', marketCap: 420000 },
-    'TITAN.NS': { sector: 'Consumer', name: 'Titan Company Ltd', marketCap: 350000 },
-  };
-}
+// No demo data — all data comes from PostgreSQL via the API
 
 // ══════════════════════════════════════════════════════════════
 // ── STOCK EXPLORER MODULE ─────────────────────────────────────
@@ -685,8 +614,8 @@ function drawPriceChart(prices) {
 function getStockList() {
   return stockScores.map(s => ({
     symbol: s.symbol,
-    name: window._demoProfiles?.[s.symbol]?.name || s.symbol.replace('.NS', ''),
-    sector: window._demoProfiles?.[s.symbol]?.sector || '',
+    name: s.symbol.replace('.NS', ''),
+    sector: '',
   }));
 }
 
@@ -743,12 +672,14 @@ async function selectExplorerStock(symbol) {
     prices = apiData.prices;
   }
   if (!prices || prices.length === 0) {
-    prices = window._demoPriceData?.[symbol] || [];
+    toast(`No price data found for ${symbol}`, '⚠️');
+    console.error(`[StockPulse] No price data for ${symbol}`);
+    prices = [];
   }
   explorerPrices = prices;
 
   // Profile
-  let profile = window._demoProfiles?.[symbol] || { name: symbol.replace('.NS',''), sector: '', marketCap: 0 };
+  let profile = { name: symbol.replace('.NS',''), sector: '', industry: '', marketCap: 0 };
   const apiProfile = await api(CONFIG.API_BASE + '/fundamentals/' + symbol);
   if (apiProfile && apiProfile.asset_profile) {
     const ap = apiProfile.asset_profile;
@@ -885,14 +816,10 @@ renderExplorerRecent();
 
 async function init() {
   await loadAll();
-  // If no data from APIs, load demo
+  // Show error if no data returned from APIs
   if (stockScores.length === 0 && rssNews.length === 0) {
-    loadDemoData();
-    renderDashboard();
-    renderAllStocks();
-    renderNewsPage();
-    renderWatchlist();
-    toast('Loaded demo data — connect backends for live data', '💡');
+    toast('No data from database — check API connection', '❌');
+    console.error('[StockPulse] No data loaded. Check /api/status for DB connectivity.');
   }
   // Auto-refresh
   setInterval(loadAll, CONFIG.REFRESH_INTERVAL || 60000);
