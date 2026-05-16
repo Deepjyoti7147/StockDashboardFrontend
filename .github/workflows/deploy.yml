@@ -36,16 +36,16 @@ jobs:
           NEWS_A_H="${NEWS_ANALYSIS_HOST:-$SERVER_IP}"
 
           # Create project dir on remote
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "mkdir -p /opt/stock-dashboard"
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "mkdir -p ~/stock-dashboard"
 
           # Copy all files
           scp -o StrictHostKeyChecking=no \
             index.html index.css app.js config.js \
             Dockerfile nginx.conf docker-compose.yml \
-            ${SERVER_USER}@${SERVER_IP}:/opt/stock-dashboard/
+            ${SERVER_USER}@${SERVER_IP}:~/stock-dashboard/
 
           # Inject production config with service IPs from secrets
-          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "cat > /opt/stock-dashboard/config.js" << EOF
+          ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} "cat > ~/stock-dashboard/config.js" << EOF
           const CONFIG = {
             STOCK_API:          'http://${STOCK_H}:8001',
             SORT_API:           'http://${SORT_H}:8002',
@@ -58,8 +58,8 @@ jobs:
 
           # Rebuild and restart container
           ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} << 'DEPLOY_EOF'
-            cd /opt/stock-dashboard
+            cd ~/stock-dashboard
             docker compose down || true
             docker compose up -d --build
-            echo "✅ Dashboard deployed successfully on port 3000"
+            echo "✅ Dashboard deployed successfully on port 7417"
           DEPLOY_EOF
