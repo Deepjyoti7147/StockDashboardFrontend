@@ -5,5 +5,5 @@ services:
     container_name: stock-dashboard
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "7417:80"
     mem_limit: 64m

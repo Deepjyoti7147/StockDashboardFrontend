@@ -9,7 +9,7 @@ This dashboard is a **pure frontend** (HTML/CSS/JS) that consumes data from your
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Browser (StockPulse Dashboard)                         │
-│  Served via Nginx on port 3000                          │
+│  Served via Nginx on port 7417                          │
 └──────┬──────┬──────┬──────┬─────────────────────────────┘
        │      │      │      │
        ▼      ▼      ▼      ▼
@@ -95,7 +95,7 @@ The dashboard auto-detects `localhost` and connects to them.
 
 ```bash
 docker compose up -d --build
-# Dashboard available at http://localhost:3000
+# Dashboard available at http://localhost:7417
 ```
 
 ## ☁️ Deployment (CI/CD with Tailscale SSH)
@@ -140,7 +140,7 @@ StockMarketDashboard/
 ├── config.js               # API endpoint auto-detection
 ├── Dockerfile              # Nginx container
 ├── nginx.conf              # Nginx config (caching, security headers, gzip)
-├── docker-compose.yml      # Docker orchestration (port 3000)
+├── docker-compose.yml      # Docker orchestration (port 7417)
 ├── .gitignore
 ├── README.md
 └── .github/workflows/
@@ -156,7 +156,7 @@ The dashboard auto-detects where to find backend services:
 | Scenario | Browser sees | APIs called at |
 |----------|-------------|----------------|
 | Local dev (`localhost:8080`) | `localhost` | `http://localhost:8001`, `:8002`, etc. |
-| Deployed (e.g. `100.x.x.x:3000`) | `100.x.x.x` | `http://100.x.x.x:8001`, `:8002`, etc. |
+| Deployed (e.g. `100.x.x.x:7417`) | `100.x.x.x` | `http://100.x.x.x:8001`, `:8002`, etc. |
 | Custom domain | `stocks.example.com` | `http://stocks.example.com:8001`, etc. |
 | CI/CD deployed | N/A | Overwritten with exact IPs from GitHub Secrets |
 
