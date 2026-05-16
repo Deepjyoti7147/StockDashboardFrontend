@@ -762,23 +762,94 @@ function renderExplorerChart() {
   drawPriceChart(sliced);
 }
 
+function formatProfileToHTML(profileObj) {
+  if (!profileObj || Object.keys(profileObj).length === 0) return '<div style="padding:20px;text-align:center;color:var(--text-muted);">No profile data available.</div>';
+  
+  let html = '<table style="width:100%; border-collapse: collapse; font-size: 0.95rem;"><tbody>';
+  
+  for (const [key, value] of Object.entries(profileObj)) {
+    if (typeof value === 'object' && value !== null) continue;
+    if (value === null || value === '') continue;
+    
+    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    
+    html += `
+      <tr style="border-bottom: 1px solid var(--border-color);">
+        <td style="padding: 12px 8px; font-weight: 600; width: 30%; color: var(--text-muted);">${formattedKey}</td>
+        <td style="padding: 12px 8px;">${value}</td>
+      </tr>
+    `;
+  }
+  html += '</tbody></table>';
+  return html;
+}
+
+function formatFinancialsToHTML(finArray) {
+  if (!finArray || !Array.isArray(finArray) || finArray.length === 0) {
+    return '<div style="padding:20px;text-align:center;color:var(--text-muted);">No financial data available.</div>';
+  }
+
+  const periods = finArray.map(item => item.asOfDate ? item.asOfDate.split(' ')[0] : 'Unknown Date');
+  const allKeys = new Set();
+  
+  finArray.forEach(item => {
+    Object.keys(item).forEach(key => {
+      if (!['asOfDate', 'periodType', 'currencyCode'].includes(key)) allKeys.add(key);
+    });
+  });
+  
+  const sortedKeys = Array.from(allKeys).sort();
+
+  let html = '<div style="overflow-x:auto;"><table style="width:100%; border-collapse: collapse; text-align: right; font-size: 0.95rem;">';
+  
+  html += '<thead><tr style="border-bottom: 2px solid var(--border-color);">';
+  html += '<th style="padding: 12px 8px; text-align: left; color: var(--text-muted); position: sticky; left: 0; background: var(--card-bg);">Metric</th>';
+  periods.forEach(date => {
+    html += `<th style="padding: 12px 8px; color: var(--text-light); min-width: 120px;">${date}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  const formatNumber = (num) => {
+    if (num === null || num === undefined) return '—';
+    if (typeof num === 'number') {
+      if (Math.abs(num) >= 1e7) return '₹' + (num / 1e7).toFixed(2) + ' Cr';
+      if (Math.abs(num) >= 1e5) return '₹' + (num / 1e5).toFixed(2) + ' L';
+      return num.toLocaleString();
+    }
+    return num;
+  };
+
+  sortedKeys.forEach(key => {
+    const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    html += `<tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 12px 8px; text-align: left; font-weight: 500; position: sticky; left: 0; background: var(--card-bg);">${formattedKey}</td>`;
+    
+    finArray.forEach(item => {
+      const val = item[key];
+      html += `<td style="padding: 12px 8px; color: ${typeof val === 'number' && val < 0 ? 'var(--red)' : 'inherit'};">${formatNumber(val)}</td>`;
+    });
+    
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  return html;
+}
+
 function renderDeepFundamentals(apiProfile) {
   if (!apiProfile) {
-    document.getElementById('explorer-deep-profile').textContent = 'No data available.';
-    document.getElementById('explorer-deep-bs-annual').textContent = 'No data available.';
-    document.getElementById('explorer-deep-bs-quarter').textContent = 'No data available.';
-    document.getElementById('explorer-deep-cf-annual').textContent = 'No data available.';
-    document.getElementById('explorer-deep-cf-quarter').textContent = 'No data available.';
+    document.getElementById('explorer-deep-profile').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No data available.</div>';
+    document.getElementById('explorer-deep-bs-annual').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No data available.</div>';
+    document.getElementById('explorer-deep-bs-quarter').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No data available.</div>';
+    document.getElementById('explorer-deep-cf-annual').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No data available.</div>';
+    document.getElementById('explorer-deep-cf-quarter').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No data available.</div>';
     return;
   }
   
-  const formatJSON = (data) => data ? JSON.stringify(data, null, 2) : 'No data available.';
-  
-  document.getElementById('explorer-deep-profile').textContent = formatJSON(apiProfile.asset_profile);
-  document.getElementById('explorer-deep-bs-annual').textContent = formatJSON(apiProfile.balance_sheet_annual);
-  document.getElementById('explorer-deep-bs-quarter').textContent = formatJSON(apiProfile.balance_sheet_quarterly);
-  document.getElementById('explorer-deep-cf-annual').textContent = formatJSON(apiProfile.cash_flow_annual);
-  document.getElementById('explorer-deep-cf-quarter').textContent = formatJSON(apiProfile.cash_flow_quarterly);
+  document.getElementById('explorer-deep-profile').innerHTML = formatProfileToHTML(apiProfile.asset_profile);
+  document.getElementById('explorer-deep-bs-annual').innerHTML = formatFinancialsToHTML(apiProfile.balance_sheet_annual);
+  document.getElementById('explorer-deep-bs-quarter').innerHTML = formatFinancialsToHTML(apiProfile.balance_sheet_quarterly);
+  document.getElementById('explorer-deep-cf-annual').innerHTML = formatFinancialsToHTML(apiProfile.cash_flow_annual);
+  document.getElementById('explorer-deep-cf-quarter').innerHTML = formatFinancialsToHTML(apiProfile.cash_flow_quarterly);
 }
 
 async function fetchAndRenderExplorerNews(symbol, sector) {
