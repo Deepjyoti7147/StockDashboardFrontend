@@ -6,4 +6,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     mem_limit: 64m
